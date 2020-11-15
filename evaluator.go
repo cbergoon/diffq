@@ -3,7 +3,9 @@ package diffq
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/spf13/cast"
@@ -45,6 +47,19 @@ func (s *TokenStack) Size() int {
 	return len(s.Stack)
 }
 
+func wildcardPathMatch(filter, path []string) bool {
+	for i, f := range filter {
+		if len(path) < i+1 {
+			return false
+		}
+		if f != path[i] && f != "*" {
+			return false
+		}
+	}
+
+	return true
+}
+
 func ValidateTransformStack(stack *TokenStack) error {
 	if stack.Size() != 3 {
 		return errors.New("error: invalid number of arguments in eval")
@@ -70,146 +85,211 @@ func EvaluateTransformStack(stack *TokenStack, d *Diff) bool {
 		literal = stack.Pop()
 	}
 
-	// check goesto
-	if operator.Type == GOESTO {
-		x, ok := d.ChangeLogMap[identifier.Literal]
-		if !ok {
-			return false
-		}
-		// check that literal value of literal (converted to value type) == to value
-		if literal.Type == INT {
-			i, err := strconv.ParseInt(literal.Literal, 10, 64)
-			if err != nil {
+	//Rewrite
+	exprChangeIdentifier := identifier
 
-			}
-			if i == cast.ToInt64(x.To) {
-				return true
-			} else {
-				return false
-			}
-		} else if literal.Type == FLOAT {
-			i, err := strconv.ParseFloat(literal.Literal, 64)
-			if err != nil {
-
-			}
-			if i == cast.ToFloat64(x.To) {
-				return true
-			} else {
-				return false
-			}
-		} else if literal.Type == STRING {
-			s := literal.Literal
-			if s == cast.ToString(x.To) {
-				return true
-			} else {
-				return false
-			}
-		} else if literal.Type == DURATION {
-			d, err := time.ParseDuration(literal.Literal)
-			if err != nil {
-
-			}
-			if d == cast.ToDuration(x.To) {
-				return true
-			} else {
-				return false
-			}
-		} else if literal.Type == TIME {
-			t, err := time.Parse(time.RFC3339, literal.Literal)
-			if err != nil {
-				fmt.Println(err)
-			}
-			if t.Equal(cast.ToTime(x.To)) {
-				return true
-			} else {
-				return false
-			}
-		} else if literal.Type == TRUE {
-			bv := true
-			if bv == x.To {
-				return true
-			} else {
-				return false
-			}
-		} else if literal.Type == FALSE {
-			bv := false
-			if bv == x.To {
-				return true
-			} else {
-				return false
-			}
-		}
-	} else if operator.Type == NOTGOESTO {
-		x, ok := d.ChangeLogMap[identifier.Literal]
-		if !ok {
-			return true
-		}
-		// check that literal value of literal (converted to value type) != to value
-		if literal.Type == INT {
-			i, err := strconv.ParseInt(literal.Literal, 10, 64)
-			if err != nil {
-
-			}
-			if i != cast.ToInt64(x.To) {
-				return true
-			} else {
-				return false
-			}
-		} else if literal.Type == FLOAT {
-			i, err := strconv.ParseFloat(literal.Literal, 64)
-			if err != nil {
-
-			}
-			if i != cast.ToFloat64(x.To) {
-				return true
-			} else {
-				return false
-			}
-		} else if literal.Type == STRING {
-			s := literal.Literal
-			if s != cast.ToString(x.To) {
-				return true
-			} else {
-				return false
-			}
-		} else if literal.Type == DURATION {
-			d, err := time.ParseDuration(literal.Literal)
-			if err != nil {
-
-			}
-			if d != cast.ToDuration(x.To) {
-				return true
-			} else {
-				return false
-			}
-		} else if literal.Type == TIME {
-			t, err := time.Parse(time.RFC3339, literal.Literal)
-			if err != nil {
-
-			}
-			if !t.Equal(cast.ToTime(x.To)) {
-				return true
-			} else {
-				return false
-			}
-		} else if literal.Type == TRUE {
-			bv := true
-			if bv != x.To {
-				return true
-			} else {
-				return false
-			}
-		} else if literal.Type == FALSE {
-			bv := false
-			if bv != x.To {
-				return true
-			} else {
-				return false
+	identifierParts := strings.Split(exprChangeIdentifier.Literal, ".")
+	for i := 1; i <= len(identifierParts); i++ {
+		cumulativeParts := strings.Join(identifierParts[:i], ".")
+		field, _ := d.GetStructFieldByName(cumulativeParts, d.B)
+		fieldKind := reflect.ValueOf(field).Kind()
+		if fieldKind == reflect.Array || fieldKind == reflect.Slice {
+			length, _ := d.GetStructSliceFieldLenByName(cumulativeParts, d.B)
+			if length > 0 {
+				if len(identifierParts) > i {
+					if identifierParts[i] == "$first" {
+						identifierParts[i] = "0"
+						i++
+					} else if identifierParts[i] == "$last" {
+						identifierParts[i] = fmt.Sprint(length - 1)
+						i++
+					}
+				}
 			}
 		}
 	}
 
-	return false
+	expandedPath := identifierParts
+
+	var matchedChanges Changes
+	for _, c := range d.Changes {
+		if wildcardPathMatch(expandedPath, c.Path) {
+			matchedChanges = append(matchedChanges, c)
+		}
+	}
+
+	// fmt.Println("rewrite summary", expandedPath, matchedChanges)
+
+	foundValidChange := false
+	if len(matchedChanges) == 0 && operator.Type == NOTGOESTO {
+		foundValidChange = true
+	} else {
+		for _, mc := range matchedChanges {
+
+			if operator.Type == GOESTO {
+				// check that literal value of literal (converted to value type) == to value
+				if literal.Type == INT {
+					i, err := strconv.ParseInt(literal.Literal, 10, 64)
+					if err != nil {
+
+					}
+					if i == cast.ToInt64(mc.To) {
+						foundValidChange = true
+					}
+				} else if literal.Type == FLOAT {
+					i, err := strconv.ParseFloat(literal.Literal, 64)
+					if err != nil {
+
+					}
+					if i == cast.ToFloat64(mc.To) {
+						foundValidChange = true
+					}
+				} else if literal.Type == STRING {
+					s := literal.Literal
+					if s == cast.ToString(mc.To) {
+						foundValidChange = true
+					}
+				} else if literal.Type == DURATION {
+					d, err := time.ParseDuration(literal.Literal)
+					if err != nil {
+
+					}
+					if d == cast.ToDuration(mc.To) {
+						foundValidChange = true
+					}
+				} else if literal.Type == TIME {
+					t, err := time.Parse(time.RFC3339, literal.Literal)
+					if err != nil {
+						fmt.Println(err)
+					}
+					if t.Equal(cast.ToTime(mc.To)) {
+						foundValidChange = true
+					}
+				} else if literal.Type == TRUE {
+					bv := true
+					if bv == mc.To {
+						foundValidChange = true
+					}
+				} else if literal.Type == FALSE {
+					bv := false
+					if bv == mc.To {
+						foundValidChange = true
+					}
+				} else if literal.Type == NIL {
+					if mc.To == nil {
+						foundValidChange = true
+					}
+				} else if literal.Type == ASTERISK {
+					// Change matches; so change went to some value therefore true
+					foundValidChange = true
+				} else if literal.Type == CREATED {
+					if mc.Type == "create" {
+						foundValidChange = true
+					}
+				} else if literal.Type == DELETED {
+					if mc.Type == "delete" {
+						foundValidChange = true
+					}
+				}
+			} else if operator.Type == NOTGOESTO {
+
+				// check that literal value of literal (converted to value type) != to value
+				if literal.Type == INT {
+					i, err := strconv.ParseInt(literal.Literal, 10, 64)
+					if err != nil {
+
+					}
+					if i != cast.ToInt64(mc.To) {
+						foundValidChange = true
+					}
+				} else if literal.Type == FLOAT {
+					i, err := strconv.ParseFloat(literal.Literal, 64)
+					if err != nil {
+
+					}
+					if i != cast.ToFloat64(mc.To) {
+						foundValidChange = true
+					}
+				} else if literal.Type == STRING {
+					s := literal.Literal
+					if s != cast.ToString(mc.To) {
+						foundValidChange = true
+					}
+				} else if literal.Type == DURATION {
+					d, err := time.ParseDuration(literal.Literal)
+					if err != nil {
+
+					}
+					if d != cast.ToDuration(mc.To) {
+						foundValidChange = true
+					}
+				} else if literal.Type == TIME {
+					t, err := time.Parse(time.RFC3339, literal.Literal)
+					if err != nil {
+
+					}
+					if !t.Equal(cast.ToTime(mc.To)) {
+						foundValidChange = true
+					}
+				} else if literal.Type == TRUE {
+					bv := true
+					if bv != mc.To {
+						foundValidChange = true
+					}
+				} else if literal.Type == FALSE {
+					bv := false
+					if bv != mc.To {
+						foundValidChange = true
+					}
+				} else if literal.Type == NIL {
+					if mc.To != nil {
+						foundValidChange = true
+					}
+				} else if literal.Type == ASTERISK {
+					notFound := true
+					for _, ch := range matchedChanges {
+						if wildcardPathMatch(expandedPath, ch.Path) {
+							notFound = false
+						}
+					}
+					if notFound {
+						foundValidChange = notFound
+					}
+				} else if literal.Type == CREATED {
+					notFound := true
+					for _, ch := range matchedChanges {
+						if ch.Type == "create" {
+							if wildcardPathMatch(expandedPath, ch.Path) {
+								notFound = false
+							}
+						}
+					}
+					if notFound {
+						foundValidChange = notFound
+					}
+				} else if literal.Type == DELETED {
+					notFound := true
+					for _, ch := range matchedChanges {
+						if ch.Type == "delete" {
+							if wildcardPathMatch(expandedPath, ch.Path) {
+								notFound = false
+							}
+						}
+					}
+					if notFound {
+						foundValidChange = notFound
+					}
+				}
+			}
+
+			if foundValidChange {
+				return foundValidChange
+			}
+
+		}
+	}
+
+	return foundValidChange
 }
 
 func Validate(statement string) error {
@@ -225,7 +305,6 @@ func Validate(statement string) error {
 
 	token := lexer.NextToken()
 	for isBalanced && token.Type != EOF {
-		fmt.Println(token)
 		switch token.Type {
 		case AND:
 			fallthrough
@@ -272,7 +351,6 @@ func Evaluate(statement string, d *Diff) bool {
 
 	token := lexer.NextToken()
 	for token.Type != EOF {
-		// fmt.Println(token)
 		if token.Type != RPAREN {
 			ts.Push(token)
 		} else {
@@ -286,11 +364,7 @@ func Evaluate(statement string, d *Diff) bool {
 					break
 				}
 			}
-			//debug
-			// for !curexpts.IsEmpty() {
-			// 	cc := curexpts.Pop()
-			// 	fmt.Println(cc.Literal, cc.Type)
-			// }
+
 			op := ts.Pop()
 
 			if op.Type == EVAL {
@@ -300,7 +374,6 @@ func Evaluate(statement string, d *Diff) bool {
 					// return err
 				}
 				expres := EvaluateTransformStack(curexpts, d)
-				// fmt.Println("eval = ", expres)
 				if expres == true {
 					ts.Push(&Token{Type: TRUE, Literal: TRUE})
 				} else {
@@ -331,7 +404,6 @@ func Evaluate(statement string, d *Diff) bool {
 					}
 				}
 			}
-			// fmt.Printf("Eval Set: [%v] %v\n", op, curexp)
 
 		}
 		token = lexer.NextToken()

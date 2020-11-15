@@ -43,9 +43,17 @@ func (l *Lexer) NextToken() *Token {
 		tok = newToken(LPAREN, l.ch)
 	case ')':
 		tok = newToken(RPAREN, l.ch)
+	case '[':
+		tok = newToken(LBRACKET, l.ch)
+	case ']':
+		tok = newToken(RBRACKET, l.ch)
 	case '"':
 		tok.Type = STRING
 		tok.Literal = l.readString()
+	case '$':
+		tok.Literal = l.readIdentifier()
+		tok.Type = LookupIdent(tok.Literal)
+		return tok
 	case 0:
 		tok.Literal = ""
 		tok.Type = EOF
@@ -105,7 +113,7 @@ func (l *Lexer) peekChar() byte {
 
 func (l *Lexer) readIdentifier() string {
 	position := l.position
-	for isLetter(l.ch) || isDigit(l.ch) || isConcatenator(l.ch) {
+	for isLetter(l.ch) || isDigit(l.ch) || isConcatenator(l.ch) || isSpecial(l.ch) {
 		l.readChar()
 	}
 	return l.input[position:l.position]
@@ -142,6 +150,10 @@ func (l *Lexer) readString() string {
 
 func isConcatenator(ch byte) bool {
 	return ch == '_' || ch == '.'
+}
+
+func isSpecial(ch byte) bool {
+	return ch == '$' || ch == '-' || ch == '*'
 }
 
 func isLetter(ch byte) bool {

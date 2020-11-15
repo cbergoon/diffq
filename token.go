@@ -24,6 +24,9 @@ const (
 	LPAREN = "("
 	RPAREN = ")"
 
+	LBRACKET = "["
+	RBRACKET = "]"
+
 	// Keywords
 	TRUE      = "TRUE"
 	FALSE     = "FALSE"
@@ -36,6 +39,9 @@ const (
 	// GOESLT    = "=LT>"
 	// GOESGTE   = "=GTE>"
 	// GOESLTE   = "=LTE>"
+	NIL     = "NIL"
+	CREATED = "$created"
+	DELETED = "$deleted"
 )
 
 type Token struct {
@@ -60,10 +66,16 @@ var keywords = map[string]TokenType{
 	"EVAL":  EVAL,
 	"=>":    GOESTO,
 	"=!>":   NOTGOESTO,
+
 	// "=GT>":  GOESGT,
 	// "=LT>":  GOESLT,
 	// "=GTE>": GOESGTE,
 	// "=LTE>": GOESLTE,
+
+	"nil": NIL,
+
+	"$created": CREATED,
+	"$deleted": DELETED,
 }
 
 func LookupIdent(ident string) TokenType {
