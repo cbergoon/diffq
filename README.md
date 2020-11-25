@@ -310,7 +310,7 @@ EVAL(Step ["PROC-1"] => "PROC-2") // Step must change from "PROC-1" to "PROC-2"
 
 #### Comments
 
-Comments use the "/* */" format and can be used with a statement.
+Comments use the `/* */` format and can be used with a statement.
 
 ### License
 
