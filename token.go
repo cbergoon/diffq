@@ -2,11 +2,13 @@ package diffq
 
 import "fmt"
 
-type TokenType string
+type tokenType string
 
 const (
 	ILLEGAL = "ILLEGAL"
 	EOF     = "EOF"
+
+	COMMENT = "COMMENT"
 
 	// Identifiers + literals
 	IDENT    = "IDENT"    // field, field.val, array.0.val
@@ -35,25 +37,25 @@ const (
 	EVAL      = "EVAL"
 	GOESTO    = "=>"
 	NOTGOESTO = "=!>"
-	// GOESGT    = "=GT>"
-	// GOESLT    = "=LT>"
-	// GOESGTE   = "=GTE>"
-	// GOESLTE   = "=LTE>"
-	NIL     = "NIL"
-	CREATED = "$created"
-	DELETED = "$deleted"
+	GOESGT    = "=GT>"
+	GOESLT    = "=LT>"
+	GOESGTE   = "=GTE>"
+	GOESLTE   = "=LTE>"
+	NIL       = "NIL"
+	CREATED   = "$created"
+	DELETED   = "$deleted"
 )
 
-type Token struct {
-	Type    TokenType
-	Literal string
+type token struct {
+	ttype    tokenType
+	tliteral string
 }
 
-func (t *Token) String() string {
-	return fmt.Sprintf("Type: %s, Literal: %s", t.Type, t.Literal)
+func (t *token) String() string {
+	return fmt.Sprintf("Type: %s, Literal: %s", t.ttype, t.tliteral)
 }
 
-var keywords = map[string]TokenType{
+var keywords = map[string]tokenType{
 	"true":  TRUE,
 	"false": FALSE,
 	"TRUE":  TRUE,
@@ -64,21 +66,28 @@ var keywords = map[string]TokenType{
 	"OR":    OR,
 	"AND":   AND,
 	"EVAL":  EVAL,
+
 	"=>":    GOESTO,
 	"=!>":   NOTGOESTO,
-
-	// "=GT>":  GOESGT,
-	// "=LT>":  GOESLT,
-	// "=GTE>": GOESGTE,
-	// "=LTE>": GOESLTE,
+	"=gt>":  GOESGT,
+	"=lt>":  GOESLT,
+	"=gte>": GOESGTE,
+	"=lte>": GOESLTE,
+	"=GT>":  GOESGT,
+	"=LT>":  GOESLT,
+	"=GTE>": GOESGTE,
+	"=LTE>": GOESLTE,
 
 	"nil": NIL,
+	"NIL": NIL,
 
 	"$created": CREATED,
 	"$deleted": DELETED,
+	"$CREATED": CREATED,
+	"$DELETED": DELETED,
 }
 
-func LookupIdent(ident string) TokenType {
+func lookupIdent(ident string) tokenType {
 	if tok, ok := keywords[ident]; ok {
 		return tok
 	}

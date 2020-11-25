@@ -1,18 +1,14 @@
 package diffq
 
 import (
-	"errors"
-	"reflect"
-	"strconv"
 	"strings"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/pkg/errors"
 	"github.com/r3labs/diff"
 )
 
 // Changes and Change are abstracted to eliminate tight-coupling with underlying diff library.
-
-// Changes represents a list of changes identified by the diff.
-type Changes []Change
 
 // Change represents a single change identified by the diff.
 type Change struct {
@@ -21,6 +17,9 @@ type Change struct {
 	From interface{}
 	To   interface{}
 }
+
+// Changes represents a list of changes identified by the diff.
+type Changes []Change
 
 type Diff struct {
 	Changed      bool
@@ -60,58 +59,19 @@ func Differential(a, b interface{}) (*Diff, error) {
 	return result, nil
 }
 
+func HumanDifferential(a, b interface{}) string {
+	diff := cmp.Diff(a, b)
+	return diff
+}
+
 func (d *Diff) EvaluateStatement(statement string) (bool, error) {
 	err := Validate(statement)
 	if err != nil {
 		return false, err
 	}
-	result := Evaluate(statement, d)
+	result, err := Evaluate(statement, d)
+	if err != nil {
+		return false, errors.Wrap(err, "error: failed to evaluate")
+	}
 	return result, nil
-}
-
-func (d *Diff) GetStructSliceFieldLenByName(selector string, v interface{}) (int, error) {
-	components := strings.Split(selector, ".")
-	r := reflect.ValueOf(v)
-	if r.Kind() == reflect.Invalid {
-		return 0, errors.New("invalid type encountered for initial reflection")
-	}
-	for _, c := range components {
-		if r.Kind() == reflect.Ptr {
-			r = reflect.Indirect(r).FieldByName(c)
-		} else if r.Kind() == reflect.Slice || r.Kind() == reflect.Array {
-			i, _ := strconv.ParseInt(c, 10, 64)
-			r = r.Index(int(i))
-		} else if r.Kind() == reflect.Map {
-			r = r.MapIndex(reflect.ValueOf(c))
-		} else {
-			tmp := r.FieldByName(c)
-			r = tmp
-		}
-	}
-	if r.Kind() == reflect.Slice || r.Kind() == reflect.Array {
-		return r.Len(), nil
-	}
-	return 0, errors.New("terminal type from selector is not indexible")
-}
-
-func (d *Diff) GetStructFieldByName(selector string, v interface{}) (interface{}, error) {
-	components := strings.Split(selector, ".")
-	r := reflect.ValueOf(v)
-	if r.Kind() == reflect.Invalid {
-		return 0, errors.New("invalid type encountered for initial reflection")
-	}
-	for _, c := range components {
-		if r.Kind() == reflect.Ptr {
-			r = reflect.Indirect(r).FieldByName(c)
-		} else if r.Kind() == reflect.Slice || r.Kind() == reflect.Array {
-			i, _ := strconv.ParseInt(c, 10, 64)
-			r = r.Index(int(i))
-		} else if r.Kind() == reflect.Map {
-			r = r.MapIndex(reflect.ValueOf(c))
-		} else {
-			tmp := r.FieldByName(c)
-			r = tmp
-		}
-	}
-	return r.Interface(), nil
 }

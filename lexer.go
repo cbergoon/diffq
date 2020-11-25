@@ -1,40 +1,33 @@
 package diffq
 
-type Lexer struct {
+type lexer struct {
 	input        string
 	position     int  // current position in input (points to current char)
 	readPosition int  // current reading position in input (after current char)
 	ch           byte // current char under examination
 }
 
-func NewLexer(input string) *Lexer {
-	l := &Lexer{input: input}
+func newLexer(input string) *lexer {
+	l := &lexer{input: input}
 	l.readChar()
 	return l
 }
 
-func (l *Lexer) NextToken() *Token {
-	tok := &Token{}
+func (l *lexer) nextToken() *token {
+	tok := &token{}
 
 	l.skipWhitespace()
 
 	switch l.ch {
-	case '=':
-		if l.peekChar() == '>' {
-			ch1 := l.ch
+	case '/':
+		if l.peekChar() == '*' {
 			l.readChar()
-			tok = &Token{Type: GOESTO, Literal: string(ch1) + string(l.ch)}
-		} else if l.peekChar() == '!' {
-			ch1 := l.ch
+			tok.tliteral = l.readComment()
+			tok.ttype = COMMENT
 			l.readChar()
-			if l.peekChar() == '>' {
-				ch2 := l.ch
-				l.readChar()
-				tok = &Token{Type: NOTGOESTO, Literal: string(ch1) + string(ch2) + string(l.ch)}
-			}
-		} else {
-			tok = newToken(ILLEGAL, l.ch)
+			return tok
 		}
+		tok = newToken(ILLEGAL, l.ch)
 	case '*':
 		tok = newToken(ASTERISK, l.ch)
 	case ',':
@@ -48,35 +41,39 @@ func (l *Lexer) NextToken() *Token {
 	case ']':
 		tok = newToken(RBRACKET, l.ch)
 	case '"':
-		tok.Type = STRING
-		tok.Literal = l.readString()
+		tok.ttype = STRING
+		tok.tliteral = l.readString()
 	case '$':
-		tok.Literal = l.readIdentifier()
-		tok.Type = LookupIdent(tok.Literal)
+		tok.tliteral = l.readIdentifier()
+		tok.ttype = lookupIdent(tok.tliteral)
+		return tok
+	case '=':
+		tok.tliteral = l.readOperator()
+		tok.ttype = lookupIdent(tok.tliteral)
 		return tok
 	case 0:
-		tok.Literal = ""
-		tok.Type = EOF
+		tok.tliteral = ""
+		tok.ttype = EOF
 	default:
 		if isLetter(l.ch) {
 			if l.ch == 'd' && l.peekChar() == '"' {
 				l.readChar()
-				tok.Literal = l.readString()
-				tok.Type = DURATION
+				tok.tliteral = l.readString()
+				tok.ttype = DURATION
 				l.readChar()
 				return tok
 			} else if l.ch == 't' && l.peekChar() == '"' {
 				l.readChar()
-				tok.Literal = l.readString()
-				tok.Type = TIME
+				tok.tliteral = l.readString()
+				tok.ttype = TIME
 				l.readChar()
 				return tok
 			}
-			tok.Literal = l.readIdentifier()
-			tok.Type = LookupIdent(tok.Literal)
+			tok.tliteral = l.readIdentifier()
+			tok.ttype = lookupIdent(tok.tliteral)
 			return tok
 		} else if isDigit(l.ch) || isNegativeSign(l.ch) {
-			tok.Literal, tok.Type = l.readNumber()
+			tok.tliteral, tok.ttype = l.readNumber()
 			return tok
 		} else {
 			tok = newToken(ILLEGAL, l.ch)
@@ -87,13 +84,13 @@ func (l *Lexer) NextToken() *Token {
 	return tok
 }
 
-func (l *Lexer) skipWhitespace() {
+func (l *lexer) skipWhitespace() {
 	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
 		l.readChar()
 	}
 }
 
-func (l *Lexer) readChar() {
+func (l *lexer) readChar() {
 	if l.readPosition >= len(l.input) {
 		l.ch = 0
 	} else {
@@ -103,7 +100,7 @@ func (l *Lexer) readChar() {
 	l.readPosition += 1
 }
 
-func (l *Lexer) peekChar() byte {
+func (l *lexer) peekChar() byte {
 	if l.readPosition >= len(l.input) {
 		return 0
 	} else {
@@ -111,7 +108,15 @@ func (l *Lexer) peekChar() byte {
 	}
 }
 
-func (l *Lexer) readIdentifier() string {
+func (l *lexer) readOperator() string {
+	position := l.position
+	for isLetter(l.ch) || isDigit(l.ch) || isConcatenator(l.ch) || isSpecial(l.ch) || isEqualSign(l.ch) || isAngleBracket(l.ch) || isExclamationPoint(l.ch) {
+		l.readChar()
+	}
+	return l.input[position:l.position]
+}
+
+func (l *lexer) readIdentifier() string {
 	position := l.position
 	for isLetter(l.ch) || isDigit(l.ch) || isConcatenator(l.ch) || isSpecial(l.ch) {
 		l.readChar()
@@ -119,7 +124,7 @@ func (l *Lexer) readIdentifier() string {
 	return l.input[position:l.position]
 }
 
-func (l *Lexer) readNumber() (string, TokenType) {
+func (l *lexer) readNumber() (string, tokenType) {
 	position := l.position
 	if l.ch == '-' {
 		l.readChar()
@@ -137,7 +142,7 @@ func (l *Lexer) readNumber() (string, TokenType) {
 	return l.input[position:l.position], INT
 }
 
-func (l *Lexer) readString() string {
+func (l *lexer) readString() string {
 	position := l.position + 1
 	for {
 		l.readChar()
@@ -146,6 +151,18 @@ func (l *Lexer) readString() string {
 		}
 	}
 	return l.input[position:l.position]
+}
+
+func (l *lexer) readComment() string {
+	position := l.position + 1
+	for {
+		l.readChar()
+		if l.ch == '*' && l.peekChar() == '/' {
+			l.readChar()
+			break
+		}
+	}
+	return l.input[position : l.position-1]
 }
 
 func isConcatenator(ch byte) bool {
@@ -172,6 +189,18 @@ func isDecimal(ch byte) bool {
 	return ch == '.'
 }
 
-func newToken(tokenType TokenType, ch byte) *Token {
-	return &Token{Type: tokenType, Literal: string(ch)}
+func isEqualSign(ch byte) bool {
+	return ch == '='
+}
+
+func isAngleBracket(ch byte) bool {
+	return ch == '>' || ch == '<'
+}
+
+func isExclamationPoint(ch byte) bool {
+	return ch == '!'
+}
+
+func newToken(tokenType tokenType, ch byte) *token {
+	return &token{ttype: tokenType, tliteral: string(ch)}
 }
