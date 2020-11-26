@@ -11,14 +11,18 @@ import (
 	"github.com/spf13/cast"
 )
 
+// tokenStack reprents a stack of tokens. tokenStack is used by the evaluation
+// operations as the evaluation stack.
 type tokenStack struct {
 	Stack []*token
 }
 
+// push appends a token to the bottom of the stack.
 func (s *tokenStack) push(token *token) {
 	s.Stack = append(s.Stack, token)
 }
 
+// pop returns and removes a token from the top of the stack.
 func (s *tokenStack) pop() *token {
 	if s.isEmpty() {
 		return nil
@@ -28,6 +32,7 @@ func (s *tokenStack) pop() *token {
 	return last
 }
 
+// peek returns the token from the top of the stack but does not remove it.
 func (s *tokenStack) peek() *token {
 	if s.isEmpty() {
 		return nil
@@ -36,6 +41,7 @@ func (s *tokenStack) peek() *token {
 	return last
 }
 
+// isEmpty return true if the stack is empty; false otherwise.
 func (s *tokenStack) isEmpty() bool {
 	if len(s.Stack) <= 0 {
 		return true
@@ -43,10 +49,14 @@ func (s *tokenStack) isEmpty() bool {
 	return false
 }
 
+// size returns the length of the stack.
 func (s *tokenStack) size() int {
 	return len(s.Stack)
 }
 
+// wildcardPathMatch matches the composed identifier "filter" with wildcards to
+// the components of the path. Example: A.B.* matches A.B.C, A.B.D, etc.; A.*.C
+// matches A.B.C, A.D.C, etc.
 func wildcardPathMatch(filter, path []string) bool {
 	for i, f := range filter {
 		if len(path) < i+1 {
@@ -60,6 +70,10 @@ func wildcardPathMatch(filter, path []string) bool {
 	return true
 }
 
+// getStructSliceFieldLenByName reflects on the provided value 'v' to determine
+// the length of the field provided identified by 'selector'. It is assumed that
+// the selector identifies an array. The function returns the length of the
+// identified value.
 func (d *Diff) getStructSliceFieldLenByName(selector string, v interface{}) (int, error) {
 	components := strings.Split(selector, ".")
 	r := reflect.ValueOf(v)
@@ -85,6 +99,8 @@ func (d *Diff) getStructSliceFieldLenByName(selector string, v interface{}) (int
 	return 0, errors.New("terminal type from selector is not indexible")
 }
 
+// getStructFieldByName returns the value of the field represented by 'selector'
+// in the value 'v' provided.
 func (d *Diff) getStructFieldByName(selector string, v interface{}) (interface{}, error) {
 	components := strings.Split(selector, ".")
 	r := reflect.ValueOf(v)
@@ -107,8 +123,14 @@ func (d *Diff) getStructFieldByName(selector string, v interface{}) (interface{}
 	return r.Interface(), nil
 }
 
+// validateTransformStack ensures that the transform stack is valid for
+// operation. The transform stack represents the actual operations/comparisons
+// to be executed (the portions of the statement that is contained in EVAL
+// statements). This validation step enforces the structure of EVAL statements
+// contents ensuring that the components of the expression are of the correct
+// type and semantically correct.
 func validateTransformStack(stack *tokenStack) error {
-	if stack.size() == 3 {
+	if stack.size() == 3 { // Standard expression - assuming previous value not present expecting 3 components
 		if stack.Stack[2].ttype != IDENT {
 			return errors.Errorf("validation error: expected identifier got %s", stack.Stack[2].tliteral)
 		}
@@ -124,7 +146,7 @@ func validateTransformStack(stack *tokenStack) error {
 				return errors.New("validation error: cannot use literal values '*' or 'nil' with comparison operators")
 			}
 		}
-	} else if stack.size() == 4 {
+	} else if stack.size() == 4 { // Previous value - assuming previous value present expecting 4 components
 		if stack.Stack[3].ttype != IDENT {
 			return errors.Errorf("validation error: expected identifier got %s", stack.Stack[3].tliteral)
 		}
@@ -135,7 +157,8 @@ func validateTransformStack(stack *tokenStack) error {
 			return errors.Errorf("validation error: expected operator got %s", stack.Stack[1].tliteral)
 		}
 		if stack.Stack[0].ttype != STRING && stack.Stack[0].ttype != INT && stack.Stack[0].ttype != FLOAT && stack.Stack[0].ttype != ASTERISK && stack.Stack[0].ttype != DURATION && stack.Stack[0].ttype != TIME && stack.Stack[0].ttype != TRUE && stack.Stack[0].ttype != FALSE && stack.Stack[0].ttype != NIL {
-			// If length of stack is 4 then assume using previous value; cannot use deleted or created with previous value
+			// If length of stack is 4 then assume using previous value; cannot
+			// use deleted or created with previous value
 			if stack.Stack[0].ttype == CREATED || stack.Stack[0].ttype == DELETED {
 				return errors.New("validation error: cannot specify action literal of $created or $deleted when using previous value")
 			}
@@ -154,9 +177,13 @@ func validateTransformStack(stack *tokenStack) error {
 	return nil
 }
 
+// evaluateTransformStack evaluates the transform stack which represents the
+// actual comparison operations inside EVAL expressions. This function returns
+// the validity of the expression provided in the transform stack as either true
+// or false.
 func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 	var identifier, previous, operator, literal *token
-	// TODO (cbergoon): what if its not equal to 3
+
 	if stack.size() == 3 {
 		identifier = stack.pop()
 		operator = stack.pop()
@@ -170,16 +197,16 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 		return false // TODO (cbergoon): error here?
 	}
 
-	//Rewrite
+	// rewrite/expand expression
 	exprChangeIdentifier := identifier
 
 	identifierParts := strings.Split(exprChangeIdentifier.tliteral, ".")
 	for i := 1; i <= len(identifierParts); i++ {
 		cumulativeParts := strings.Join(identifierParts[:i], ".")
-		field, _ := d.getStructFieldByName(cumulativeParts, d.B)
+		field, _ := d.getStructFieldByName(cumulativeParts, d.New)
 		fieldKind := reflect.ValueOf(field).Kind()
 		if fieldKind == reflect.Array || fieldKind == reflect.Slice {
-			length, _ := d.getStructSliceFieldLenByName(cumulativeParts, d.B)
+			length, _ := d.getStructSliceFieldLenByName(cumulativeParts, d.New)
 			if length > 0 {
 				if len(identifierParts) > i {
 					if identifierParts[i] == "$first" {
@@ -203,6 +230,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 		}
 	}
 
+	// TODO (cbergoon): handle errors below?
 	foundValidChange := false
 	if len(matchedChanges) == 0 && operator.ttype == NOTGOESTO {
 		foundValidChange = true
@@ -244,7 +272,6 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 				} else if previous.ttype == TIME {
 					t, err := time.Parse(time.RFC3339, previous.tliteral)
 					if err != nil {
-						fmt.Println(err)
 					}
 					if t.Equal(cast.ToTime(mc.From)) {
 						previousConditionValid = true
@@ -302,7 +329,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 					} else if literal.ttype == TIME {
 						t, err := time.Parse(time.RFC3339, literal.tliteral)
 						if err != nil {
-							fmt.Println(err)
+
 						}
 						if t.Equal(cast.ToTime(mc.To)) {
 							foundValidChange = true
@@ -322,7 +349,8 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 							foundValidChange = true
 						}
 					} else if literal.ttype == ASTERISK {
-						// Change matches; so change went to some value therefore true
+						// Change matches; so change went to some value
+						// therefore true
 						foundValidChange = true
 					} else if literal.ttype == CREATED {
 						if mc.Type == "create" {
@@ -366,7 +394,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 					} else if literal.ttype == TIME {
 						t, err := time.Parse(time.RFC3339, literal.tliteral)
 						if err != nil {
-							fmt.Println(err)
+
 						}
 						if cast.ToTime(mc.To).After(t) {
 							foundValidChange = true
@@ -405,7 +433,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 					} else if literal.ttype == TIME {
 						t, err := time.Parse(time.RFC3339, literal.tliteral)
 						if err != nil {
-							fmt.Println(err)
+
 						}
 						if cast.ToTime(mc.To).After(t) || t.Equal(cast.ToTime(mc.To)) {
 							foundValidChange = true
@@ -444,7 +472,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 					} else if literal.ttype == TIME {
 						t, err := time.Parse(time.RFC3339, literal.tliteral)
 						if err != nil {
-							fmt.Println(err)
+
 						}
 						if cast.ToTime(mc.To).Before(t) {
 							foundValidChange = true
@@ -483,7 +511,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 					} else if literal.ttype == TIME {
 						t, err := time.Parse(time.RFC3339, literal.tliteral)
 						if err != nil {
-							fmt.Println(err)
+
 						}
 						if cast.ToTime(mc.To).Before(t) || t.Equal(cast.ToTime(mc.To)) {
 							foundValidChange = true
@@ -591,7 +619,10 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 	return foundValidChange
 }
 
-func Validate(statement string) error {
+// validate ensures the structure and semantics of the complete statement.
+// Validate returns an error if the statement is not valid or is otherwise
+// incorrect.
+func validate(statement string) error {
 	if statement == "" {
 		return errors.Errorf("validation error: empty statement")
 	}
@@ -651,16 +682,22 @@ func Validate(statement string) error {
 	return nil
 }
 
-func Evaluate(statement string, d *Diff) (bool, error) {
+// evaluate executes the the 'statement' against the Diff 'd' provided. Returns
+// the boolean result of the statement and an error if encountered. Evaluate
+// manages the entire execution and handles validation as well as the execution
+// of the individual transform stacks within the statement.
+func evaluate(statement string, d *Diff) (bool, error) {
 	ts := &tokenStack{}
 
 	lexer := newLexer(statement)
 
 	tok := lexer.nextToken()
 	for tok.ttype != EOF {
-		if tok.ttype != RPAREN {
+
+		if tok.ttype != RPAREN { // continue populating stack until hit right paren
 			ts.push(tok)
-		} else {
+		} else { // if right paren encountered then begin execution of the component until the most recent (previous) left paren.
+			// populate EVAL transfor stack
 			curexpts := &tokenStack{}
 			for !ts.isEmpty() {
 				ct := ts.pop()
@@ -675,6 +712,8 @@ func Evaluate(statement string, d *Diff) (bool, error) {
 			op := ts.pop()
 
 			if op.ttype == EVAL {
+				// if operator is EVAL then validate and execute pushing result
+				// onto the stack
 				err := validateTransformStack(curexpts)
 				if err != nil {
 					return false, errors.Wrap(err, "error: invalid transform stack; failed validation")
@@ -686,6 +725,8 @@ func Evaluate(statement string, d *Diff) (bool, error) {
 					ts.push(&token{ttype: FALSE, tliteral: FALSE})
 				}
 			} else {
+				// if operator is not EVAL (AND or OR) then evaluate the boolean
+				// expression
 				seenTrue := false
 				seenFalse := false
 				for !curexpts.isEmpty() {
@@ -715,6 +756,7 @@ func Evaluate(statement string, d *Diff) (bool, error) {
 		tok = lexer.nextToken()
 	}
 
+	// last result represents the result of the statement
 	result := ts.pop().tliteral
 	if result == TRUE {
 		return true, nil

@@ -2,15 +2,19 @@ package diffq
 
 import "fmt"
 
+// tokenType represents the type of a token using predefines constants.
 type tokenType string
 
 const (
+	// ILLEGAL represents an unsupported token
 	ILLEGAL = "ILLEGAL"
-	EOF     = "EOF"
+	//EOF represents end of file
+	EOF = "EOF"
 
 	COMMENT = "COMMENT"
 
-	// Identifiers + literals
+	// Identifiers and Literals
+
 	IDENT    = "IDENT"    // field, field.val, array.0.val
 	INT      = "INT"      // 1343456, -123456
 	STRING   = "STRING"   // "foobar"
@@ -21,6 +25,7 @@ const (
 	ASTERISK = "*"
 
 	// Delimiters
+
 	COMMA = ","
 
 	LPAREN = "("
@@ -30,6 +35,7 @@ const (
 	RBRACKET = "]"
 
 	// Keywords
+
 	TRUE      = "TRUE"
 	FALSE     = "FALSE"
 	AND       = "AND"
@@ -46,15 +52,22 @@ const (
 	DELETED   = "$deleted"
 )
 
+// token represents the output of the lexer representing each component of the
+// statement as a type and literal pair.
 type token struct {
-	ttype    tokenType
+	// ttype represents the type of the token
+	ttype tokenType
+	// tliteral represents the actual value parsed by the lexer
 	tliteral string
 }
 
+// String returns a human readable string format of token.
 func (t *token) String() string {
 	return fmt.Sprintf("Type: %s, Literal: %s", t.ttype, t.tliteral)
 }
 
+// keywords is a lookup map for the token type based on literal value of the
+// keyword.
 var keywords = map[string]tokenType{
 	"true":  TRUE,
 	"false": FALSE,
@@ -87,6 +100,8 @@ var keywords = map[string]tokenType{
 	"$DELETED": DELETED,
 }
 
+// lookupIdent first checks for and returns a matching keyword otherwise returns
+// generic IDENT type.
 func lookupIdent(ident string) tokenType {
 	if tok, ok := keywords[ident]; ok {
 		return tok

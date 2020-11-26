@@ -1,24 +1,40 @@
 package diffq
 
+// lexer represents the lexical analyzer that parses/tokenizes the diffq
+// language.
 type lexer struct {
-	input        string
-	position     int  // current position in input (points to current char)
-	readPosition int  // current reading position in input (after current char)
-	ch           byte // current char under examination
+	// input is the statement to parse.
+	input string
+	// position is the current position in input (points to the current char)
+	position int
+	// readPosition is the current position in the input (after the current
+	// char)
+	readPosition int
+	// ch is the current character to parse
+	ch byte
 }
 
+// newLexer initializes a new lexer with the provided input.
 func newLexer(input string) *lexer {
 	l := &lexer{input: input}
 	l.readChar()
 	return l
 }
 
+// nextToken advances the parser based on the current character. The current
+// character is inspected and the lexer is advanced according to the context and
+// the inspection creating tokens based on the character sequence. The next
+// token derived from the input is returned with the identified type and the
+// literal value.
 func (l *lexer) nextToken() *token {
 	tok := &token{}
 
+	// whitespace is insignificant in the diffq language other than the
+	// separation of tokens.
 	l.skipWhitespace()
 
 	switch l.ch {
+	// comments
 	case '/':
 		if l.peekChar() == '*' {
 			l.readChar()
@@ -28,32 +44,43 @@ func (l *lexer) nextToken() *token {
 			return tok
 		}
 		tok = newToken(ILLEGAL, l.ch)
+	// asterisk
 	case '*':
 		tok = newToken(ASTERISK, l.ch)
+	// comma
 	case ',':
 		tok = newToken(COMMA, l.ch)
+	// left parenthesis
 	case '(':
 		tok = newToken(LPAREN, l.ch)
+	// right parenthesis
 	case ')':
 		tok = newToken(RPAREN, l.ch)
+	// left bracket
 	case '[':
 		tok = newToken(LBRACKET, l.ch)
+	// right bracket
 	case ']':
 		tok = newToken(RBRACKET, l.ch)
+	// string / quote
 	case '"':
 		tok.ttype = STRING
 		tok.tliteral = l.readString()
+	// special keywords; $created, $deleted
 	case '$':
 		tok.tliteral = l.readIdentifier()
 		tok.ttype = lookupIdent(tok.tliteral)
 		return tok
+	// operators
 	case '=':
 		tok.tliteral = l.readOperator()
 		tok.ttype = lookupIdent(tok.tliteral)
 		return tok
+	// end of file
 	case 0:
 		tok.tliteral = ""
 		tok.ttype = EOF
+	// literals; string, time, duration, integer, float, true, false, etc.
 	default:
 		if isLetter(l.ch) {
 			if l.ch == 'd' && l.peekChar() == '"' {
@@ -84,12 +111,15 @@ func (l *lexer) nextToken() *token {
 	return tok
 }
 
+// skipWhitespace consumes whitespace blindly. Called on each iteration of
+// nextToken().
 func (l *lexer) skipWhitespace() {
 	for l.ch == ' ' || l.ch == '\t' || l.ch == '\n' || l.ch == '\r' {
 		l.readChar()
 	}
 }
 
+// readChar advances the current position of the lexer in the input.
 func (l *lexer) readChar() {
 	if l.readPosition >= len(l.input) {
 		l.ch = 0
@@ -100,6 +130,7 @@ func (l *lexer) readChar() {
 	l.readPosition += 1
 }
 
+// peekChar looks ahead to the next character in the input.
 func (l *lexer) peekChar() byte {
 	if l.readPosition >= len(l.input) {
 		return 0
@@ -108,6 +139,8 @@ func (l *lexer) peekChar() byte {
 	}
 }
 
+// readOperator advances the input until the end of the operator. The start of
+// the operator is indicated by the '=' character.
 func (l *lexer) readOperator() string {
 	position := l.position
 	for isLetter(l.ch) || isDigit(l.ch) || isConcatenator(l.ch) || isSpecial(l.ch) || isEqualSign(l.ch) || isAngleBracket(l.ch) || isExclamationPoint(l.ch) {
@@ -116,6 +149,7 @@ func (l *lexer) readOperator() string {
 	return l.input[position:l.position]
 }
 
+// readIdentifier advances the input until the end of the identifier.
 func (l *lexer) readIdentifier() string {
 	position := l.position
 	for isLetter(l.ch) || isDigit(l.ch) || isConcatenator(l.ch) || isSpecial(l.ch) {
@@ -124,6 +158,7 @@ func (l *lexer) readIdentifier() string {
 	return l.input[position:l.position]
 }
 
+// readNumber advances the input until the end of the number.
 func (l *lexer) readNumber() (string, tokenType) {
 	position := l.position
 	if l.ch == '-' {
@@ -142,6 +177,8 @@ func (l *lexer) readNumber() (string, tokenType) {
 	return l.input[position:l.position], INT
 }
 
+// readString advances the input until the end of the string. The start and end
+// is indicated by a '"'.
 func (l *lexer) readString() string {
 	position := l.position + 1
 	for {
@@ -153,6 +190,8 @@ func (l *lexer) readString() string {
 	return l.input[position:l.position]
 }
 
+// readComment advances the input until the end of the comment. The start and
+// end of the comment are indicated by "/*" and "*/" respectively.
 func (l *lexer) readComment() string {
 	position := l.position + 1
 	for {
@@ -163,6 +202,11 @@ func (l *lexer) readComment() string {
 		}
 	}
 	return l.input[position : l.position-1]
+}
+
+// newToken creates a new token with the type and literal value specified.
+func newToken(tokenType tokenType, ch byte) *token {
+	return &token{ttype: tokenType, tliteral: string(ch)}
 }
 
 func isConcatenator(ch byte) bool {
@@ -199,8 +243,4 @@ func isAngleBracket(ch byte) bool {
 
 func isExclamationPoint(ch byte) bool {
 	return ch == '!'
-}
-
-func newToken(tokenType tokenType, ch byte) *token {
-	return &token{ttype: tokenType, tliteral: string(ch)}
 }
