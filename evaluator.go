@@ -131,42 +131,42 @@ func (d *Diff) getStructFieldByName(selector string, v interface{}) (interface{}
 // type and semantically correct.
 func validateTransformStack(stack *tokenStack) error {
 	if stack.size() == 3 { // Standard expression - assuming previous value not present expecting 3 components
-		if stack.Stack[2].ttype != IDENT {
+		if stack.Stack[2].ttype != cIDENT {
 			return errors.Errorf("validation error: expected identifier got %s", stack.Stack[2].tliteral)
 		}
-		if stack.Stack[1].ttype != GOESTO && stack.Stack[1].ttype != NOTGOESTO && stack.Stack[1].ttype != GOESGT && stack.Stack[1].ttype != GOESGTE && stack.Stack[1].ttype != GOESLT && stack.Stack[1].ttype != GOESLTE {
+		if stack.Stack[1].ttype != cGOESTO && stack.Stack[1].ttype != cNOTGOESTO && stack.Stack[1].ttype != cGOESGT && stack.Stack[1].ttype != cGOESGTE && stack.Stack[1].ttype != cGOESLT && stack.Stack[1].ttype != cGOESLTE {
 			return errors.Errorf("validation error: expected operator got %s", stack.Stack[1].tliteral)
 		}
-		if stack.Stack[0].ttype != STRING && stack.Stack[0].ttype != INT && stack.Stack[0].ttype != FLOAT && stack.Stack[0].ttype != ASTERISK && stack.Stack[0].ttype != DURATION && stack.Stack[0].ttype != TIME && stack.Stack[0].ttype != TRUE && stack.Stack[0].ttype != FALSE && stack.Stack[0].ttype != NIL && stack.Stack[0].ttype != CREATED && stack.Stack[0].ttype != DELETED {
+		if stack.Stack[0].ttype != cSTRING && stack.Stack[0].ttype != cINT && stack.Stack[0].ttype != cFLOAT && stack.Stack[0].ttype != cASTERISK && stack.Stack[0].ttype != cDURATION && stack.Stack[0].ttype != cTIME && stack.Stack[0].ttype != cTRUE && stack.Stack[0].ttype != cFALSE && stack.Stack[0].ttype != cNIL && stack.Stack[0].ttype != cCREATED && stack.Stack[0].ttype != cDELETED {
 			return errors.Errorf("validation error: expected literal got %s", stack.Stack[0].tliteral)
 		}
 		// If operator is comparison literal cannot be 'nil' or '*'
-		if stack.Stack[1].ttype == GOESGT || stack.Stack[1].ttype == GOESGTE || stack.Stack[1].ttype == GOESLT || stack.Stack[1].ttype == GOESLTE {
-			if stack.Stack[0].ttype == ASTERISK || stack.Stack[0].ttype == NIL || stack.Stack[0].ttype == CREATED || stack.Stack[0].ttype == DELETED {
+		if stack.Stack[1].ttype == cGOESGT || stack.Stack[1].ttype == cGOESGTE || stack.Stack[1].ttype == cGOESLT || stack.Stack[1].ttype == cGOESLTE {
+			if stack.Stack[0].ttype == cASTERISK || stack.Stack[0].ttype == cNIL || stack.Stack[0].ttype == cCREATED || stack.Stack[0].ttype == cDELETED {
 				return errors.New("validation error: cannot use literal values '*' or 'nil' with comparison operators")
 			}
 		}
 	} else if stack.size() == 4 { // Previous value - assuming previous value present expecting 4 components
-		if stack.Stack[3].ttype != IDENT {
+		if stack.Stack[3].ttype != cIDENT {
 			return errors.Errorf("validation error: expected identifier got %s", stack.Stack[3].tliteral)
 		}
-		if stack.Stack[2].ttype != STRING && stack.Stack[2].ttype != INT && stack.Stack[2].ttype != FLOAT && stack.Stack[2].ttype != ASTERISK && stack.Stack[2].ttype != DURATION && stack.Stack[2].ttype != TIME && stack.Stack[2].ttype != TRUE && stack.Stack[2].ttype != FALSE && stack.Stack[2].ttype != NIL {
+		if stack.Stack[2].ttype != cSTRING && stack.Stack[2].ttype != cINT && stack.Stack[2].ttype != cFLOAT && stack.Stack[2].ttype != cASTERISK && stack.Stack[2].ttype != cDURATION && stack.Stack[2].ttype != cTIME && stack.Stack[2].ttype != cTRUE && stack.Stack[2].ttype != cFALSE && stack.Stack[2].ttype != cNIL {
 			return errors.Errorf("validation error: expected literal got %s", stack.Stack[2].tliteral)
 		}
-		if stack.Stack[1].ttype != GOESTO && stack.Stack[1].ttype != NOTGOESTO && stack.Stack[1].ttype != GOESGT && stack.Stack[1].ttype != GOESGTE && stack.Stack[1].ttype != GOESLT && stack.Stack[1].ttype != GOESLTE {
+		if stack.Stack[1].ttype != cGOESTO && stack.Stack[1].ttype != cNOTGOESTO && stack.Stack[1].ttype != cGOESGT && stack.Stack[1].ttype != cGOESGTE && stack.Stack[1].ttype != cGOESLT && stack.Stack[1].ttype != cGOESLTE {
 			return errors.Errorf("validation error: expected operator got %s", stack.Stack[1].tliteral)
 		}
-		if stack.Stack[0].ttype != STRING && stack.Stack[0].ttype != INT && stack.Stack[0].ttype != FLOAT && stack.Stack[0].ttype != ASTERISK && stack.Stack[0].ttype != DURATION && stack.Stack[0].ttype != TIME && stack.Stack[0].ttype != TRUE && stack.Stack[0].ttype != FALSE && stack.Stack[0].ttype != NIL {
+		if stack.Stack[0].ttype != cSTRING && stack.Stack[0].ttype != cINT && stack.Stack[0].ttype != cFLOAT && stack.Stack[0].ttype != cASTERISK && stack.Stack[0].ttype != cDURATION && stack.Stack[0].ttype != cTIME && stack.Stack[0].ttype != cTRUE && stack.Stack[0].ttype != cFALSE && stack.Stack[0].ttype != cNIL {
 			// If length of stack is 4 then assume using previous value; cannot
 			// use deleted or created with previous value
-			if stack.Stack[0].ttype == CREATED || stack.Stack[0].ttype == DELETED {
+			if stack.Stack[0].ttype == cCREATED || stack.Stack[0].ttype == cDELETED {
 				return errors.New("validation error: cannot specify action literal of $created or $deleted when using previous value")
 			}
 			return errors.Errorf("validation error: expected literal got %s", stack.Stack[0].tliteral)
 		}
 		// If operator is comparison literal cannot be 'nil' or '*'
-		if stack.Stack[1].ttype == GOESGT || stack.Stack[1].ttype == GOESGTE || stack.Stack[1].ttype == GOESLT || stack.Stack[1].ttype == GOESLTE {
-			if stack.Stack[0].ttype == ASTERISK || stack.Stack[0].ttype == NIL {
+		if stack.Stack[1].ttype == cGOESGT || stack.Stack[1].ttype == cGOESGTE || stack.Stack[1].ttype == cGOESLT || stack.Stack[1].ttype == cGOESLTE {
+			if stack.Stack[0].ttype == cASTERISK || stack.Stack[0].ttype == cNIL {
 				return errors.New("validation error: cannot use literal values '*' or 'nil' with comparison operators")
 			}
 		}
@@ -232,7 +232,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 
 	// TODO (cbergoon): handle errors below?
 	foundValidChange := false
-	if len(matchedChanges) == 0 && operator.ttype == NOTGOESTO {
+	if len(matchedChanges) == 0 && operator.ttype == cNOTGOESTO {
 		foundValidChange = true
 	} else {
 		for _, mc := range matchedChanges {
@@ -240,7 +240,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 			previousConditionValid := true
 			if previous != nil {
 				previousConditionValid = false
-				if previous.ttype == INT {
+				if previous.ttype == cINT {
 					i, err := strconv.ParseInt(previous.tliteral, 10, 64)
 					if err != nil {
 
@@ -248,7 +248,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 					if i == cast.ToInt64(mc.From) {
 						previousConditionValid = true
 					}
-				} else if previous.ttype == FLOAT {
+				} else if previous.ttype == cFLOAT {
 					i, err := strconv.ParseFloat(previous.tliteral, 64)
 					if err != nil {
 
@@ -256,12 +256,12 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 					if i == cast.ToFloat64(mc.From) {
 						previousConditionValid = true
 					}
-				} else if previous.ttype == STRING {
+				} else if previous.ttype == cSTRING {
 					s := previous.tliteral
 					if s == cast.ToString(mc.From) {
 						previousConditionValid = true
 					}
-				} else if previous.ttype == DURATION {
+				} else if previous.ttype == cDURATION {
 					d, err := time.ParseDuration(previous.tliteral)
 					if err != nil {
 
@@ -269,35 +269,35 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 					if d == cast.ToDuration(mc.From) {
 						previousConditionValid = true
 					}
-				} else if previous.ttype == TIME {
+				} else if previous.ttype == cTIME {
 					t, err := time.Parse(time.RFC3339, previous.tliteral)
 					if err != nil {
 					}
 					if t.Equal(cast.ToTime(mc.From)) {
 						previousConditionValid = true
 					}
-				} else if previous.ttype == TRUE {
+				} else if previous.ttype == cTRUE {
 					bv := true
 					if bv == mc.From {
 						previousConditionValid = true
 					}
-				} else if previous.ttype == FALSE {
+				} else if previous.ttype == cFALSE {
 					bv := false
 					if bv == mc.From {
 						previousConditionValid = true
 					}
-				} else if previous.ttype == NIL {
+				} else if previous.ttype == cNIL {
 					if mc.From == nil {
 						previousConditionValid = true
 					}
-				} else if previous.ttype == ASTERISK {
+				} else if previous.ttype == cASTERISK {
 					previousConditionValid = true
 				}
 			}
 
 			if previousConditionValid {
-				if operator.ttype == GOESTO {
-					if literal.ttype == INT {
+				if operator.ttype == cGOESTO {
+					if literal.ttype == cINT {
 						i, err := strconv.ParseInt(literal.tliteral, 10, 64)
 						if err != nil {
 
@@ -305,7 +305,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 						if i == cast.ToInt64(mc.To) {
 							foundValidChange = true
 						}
-					} else if literal.ttype == FLOAT {
+					} else if literal.ttype == cFLOAT {
 						i, err := strconv.ParseFloat(literal.tliteral, 64)
 						if err != nil {
 
@@ -313,12 +313,12 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 						if i == cast.ToFloat64(mc.To) {
 							foundValidChange = true
 						}
-					} else if literal.ttype == STRING {
+					} else if literal.ttype == cSTRING {
 						s := literal.tliteral
 						if s == cast.ToString(mc.To) {
 							foundValidChange = true
 						}
-					} else if literal.ttype == DURATION {
+					} else if literal.ttype == cDURATION {
 						d, err := time.ParseDuration(literal.tliteral)
 						if err != nil {
 
@@ -326,7 +326,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 						if d == cast.ToDuration(mc.To) {
 							foundValidChange = true
 						}
-					} else if literal.ttype == TIME {
+					} else if literal.ttype == cTIME {
 						t, err := time.Parse(time.RFC3339, literal.tliteral)
 						if err != nil {
 
@@ -334,35 +334,35 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 						if t.Equal(cast.ToTime(mc.To)) {
 							foundValidChange = true
 						}
-					} else if literal.ttype == TRUE {
+					} else if literal.ttype == cTRUE {
 						bv := true
 						if bv == mc.To {
 							foundValidChange = true
 						}
-					} else if literal.ttype == FALSE {
+					} else if literal.ttype == cFALSE {
 						bv := false
 						if bv == mc.To {
 							foundValidChange = true
 						}
-					} else if literal.ttype == NIL {
+					} else if literal.ttype == cNIL {
 						if mc.To == nil {
 							foundValidChange = true
 						}
-					} else if literal.ttype == ASTERISK {
+					} else if literal.ttype == cASTERISK {
 						// Change matches; so change went to some value
 						// therefore true
 						foundValidChange = true
-					} else if literal.ttype == CREATED {
+					} else if literal.ttype == cCREATED {
 						if mc.Type == "create" {
 							foundValidChange = true
 						}
-					} else if literal.ttype == DELETED {
+					} else if literal.ttype == cDELETED {
 						if mc.Type == "delete" {
 							foundValidChange = true
 						}
 					}
-				} else if operator.ttype == GOESGT {
-					if literal.ttype == INT {
+				} else if operator.ttype == cGOESGT {
+					if literal.ttype == cINT {
 						i, err := strconv.ParseInt(literal.tliteral, 10, 64)
 						if err != nil {
 
@@ -370,7 +370,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 						if cast.ToInt64(mc.To) > i {
 							foundValidChange = true
 						}
-					} else if literal.ttype == FLOAT {
+					} else if literal.ttype == cFLOAT {
 						i, err := strconv.ParseFloat(literal.tliteral, 64)
 						if err != nil {
 
@@ -378,12 +378,12 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 						if cast.ToFloat64(mc.To) > i {
 							foundValidChange = true
 						}
-					} else if literal.ttype == STRING {
+					} else if literal.ttype == cSTRING {
 						s := literal.tliteral
 						if cast.ToString(mc.To) > s {
 							foundValidChange = true
 						}
-					} else if literal.ttype == DURATION {
+					} else if literal.ttype == cDURATION {
 						d, err := time.ParseDuration(literal.tliteral)
 						if err != nil {
 
@@ -391,7 +391,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 						if cast.ToDuration(mc.To) > d {
 							foundValidChange = true
 						}
-					} else if literal.ttype == TIME {
+					} else if literal.ttype == cTIME {
 						t, err := time.Parse(time.RFC3339, literal.tliteral)
 						if err != nil {
 
@@ -400,8 +400,8 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 							foundValidChange = true
 						}
 					}
-				} else if operator.ttype == GOESGTE {
-					if literal.ttype == INT {
+				} else if operator.ttype == cGOESGTE {
+					if literal.ttype == cINT {
 						i, err := strconv.ParseInt(literal.tliteral, 10, 64)
 						if err != nil {
 
@@ -409,7 +409,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 						if cast.ToInt64(mc.To) >= i {
 							foundValidChange = true
 						}
-					} else if literal.ttype == FLOAT {
+					} else if literal.ttype == cFLOAT {
 						i, err := strconv.ParseFloat(literal.tliteral, 64)
 						if err != nil {
 
@@ -417,12 +417,12 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 						if cast.ToFloat64(mc.To) >= i {
 							foundValidChange = true
 						}
-					} else if literal.ttype == STRING {
+					} else if literal.ttype == cSTRING {
 						s := literal.tliteral
 						if cast.ToString(mc.To) >= s {
 							foundValidChange = true
 						}
-					} else if literal.ttype == DURATION {
+					} else if literal.ttype == cDURATION {
 						d, err := time.ParseDuration(literal.tliteral)
 						if err != nil {
 
@@ -430,7 +430,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 						if cast.ToDuration(mc.To) >= d {
 							foundValidChange = true
 						}
-					} else if literal.ttype == TIME {
+					} else if literal.ttype == cTIME {
 						t, err := time.Parse(time.RFC3339, literal.tliteral)
 						if err != nil {
 
@@ -439,8 +439,8 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 							foundValidChange = true
 						}
 					}
-				} else if operator.ttype == GOESLT {
-					if literal.ttype == INT {
+				} else if operator.ttype == cGOESLT {
+					if literal.ttype == cINT {
 						i, err := strconv.ParseInt(literal.tliteral, 10, 64)
 						if err != nil {
 
@@ -448,7 +448,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 						if cast.ToInt64(mc.To) < i {
 							foundValidChange = true
 						}
-					} else if literal.ttype == FLOAT {
+					} else if literal.ttype == cFLOAT {
 						i, err := strconv.ParseFloat(literal.tliteral, 64)
 						if err != nil {
 
@@ -456,12 +456,12 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 						if cast.ToFloat64(mc.To) < i {
 							foundValidChange = true
 						}
-					} else if literal.ttype == STRING {
+					} else if literal.ttype == cSTRING {
 						s := literal.tliteral
 						if cast.ToString(mc.To) < s {
 							foundValidChange = true
 						}
-					} else if literal.ttype == DURATION {
+					} else if literal.ttype == cDURATION {
 						d, err := time.ParseDuration(literal.tliteral)
 						if err != nil {
 
@@ -469,7 +469,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 						if cast.ToDuration(mc.To) < d {
 							foundValidChange = true
 						}
-					} else if literal.ttype == TIME {
+					} else if literal.ttype == cTIME {
 						t, err := time.Parse(time.RFC3339, literal.tliteral)
 						if err != nil {
 
@@ -478,8 +478,8 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 							foundValidChange = true
 						}
 					}
-				} else if operator.ttype == GOESLTE {
-					if literal.ttype == INT {
+				} else if operator.ttype == cGOESLTE {
+					if literal.ttype == cINT {
 						i, err := strconv.ParseInt(literal.tliteral, 10, 64)
 						if err != nil {
 
@@ -487,7 +487,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 						if cast.ToInt64(mc.To) <= i {
 							foundValidChange = true
 						}
-					} else if literal.ttype == FLOAT {
+					} else if literal.ttype == cFLOAT {
 						i, err := strconv.ParseFloat(literal.tliteral, 64)
 						if err != nil {
 
@@ -495,12 +495,12 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 						if cast.ToFloat64(mc.To) <= i {
 							foundValidChange = true
 						}
-					} else if literal.ttype == STRING {
+					} else if literal.ttype == cSTRING {
 						s := literal.tliteral
 						if cast.ToString(mc.To) <= s {
 							foundValidChange = true
 						}
-					} else if literal.ttype == DURATION {
+					} else if literal.ttype == cDURATION {
 						d, err := time.ParseDuration(literal.tliteral)
 						if err != nil {
 
@@ -508,7 +508,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 						if cast.ToDuration(mc.To) <= d {
 							foundValidChange = true
 						}
-					} else if literal.ttype == TIME {
+					} else if literal.ttype == cTIME {
 						t, err := time.Parse(time.RFC3339, literal.tliteral)
 						if err != nil {
 
@@ -517,8 +517,8 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 							foundValidChange = true
 						}
 					}
-				} else if operator.ttype == NOTGOESTO {
-					if literal.ttype == INT {
+				} else if operator.ttype == cNOTGOESTO {
+					if literal.ttype == cINT {
 						i, err := strconv.ParseInt(literal.tliteral, 10, 64)
 						if err != nil {
 
@@ -526,7 +526,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 						if i != cast.ToInt64(mc.To) {
 							foundValidChange = true
 						}
-					} else if literal.ttype == FLOAT {
+					} else if literal.ttype == cFLOAT {
 						i, err := strconv.ParseFloat(literal.tliteral, 64)
 						if err != nil {
 
@@ -534,12 +534,12 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 						if i != cast.ToFloat64(mc.To) {
 							foundValidChange = true
 						}
-					} else if literal.ttype == STRING {
+					} else if literal.ttype == cSTRING {
 						s := literal.tliteral
 						if s != cast.ToString(mc.To) {
 							foundValidChange = true
 						}
-					} else if literal.ttype == DURATION {
+					} else if literal.ttype == cDURATION {
 						d, err := time.ParseDuration(literal.tliteral)
 						if err != nil {
 
@@ -547,7 +547,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 						if d != cast.ToDuration(mc.To) {
 							foundValidChange = true
 						}
-					} else if literal.ttype == TIME {
+					} else if literal.ttype == cTIME {
 						t, err := time.Parse(time.RFC3339, literal.tliteral)
 						if err != nil {
 
@@ -555,21 +555,21 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 						if !t.Equal(cast.ToTime(mc.To)) {
 							foundValidChange = true
 						}
-					} else if literal.ttype == TRUE {
+					} else if literal.ttype == cTRUE {
 						bv := true
 						if bv != mc.To {
 							foundValidChange = true
 						}
-					} else if literal.ttype == FALSE {
+					} else if literal.ttype == cFALSE {
 						bv := false
 						if bv != mc.To {
 							foundValidChange = true
 						}
-					} else if literal.ttype == NIL {
+					} else if literal.ttype == cNIL {
 						if mc.To != nil {
 							foundValidChange = true
 						}
-					} else if literal.ttype == ASTERISK {
+					} else if literal.ttype == cASTERISK {
 						notFound := true
 						for _, ch := range matchedChanges {
 							if wildcardPathMatch(expandedPath, ch.Path) {
@@ -579,7 +579,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 						if notFound {
 							foundValidChange = notFound
 						}
-					} else if literal.ttype == CREATED {
+					} else if literal.ttype == cCREATED {
 						notFound := true
 						for _, ch := range matchedChanges {
 							if ch.Type == "create" {
@@ -591,7 +591,7 @@ func evaluateTransformStack(stack *tokenStack, d *Diff) bool {
 						if notFound {
 							foundValidChange = notFound
 						}
-					} else if literal.ttype == DELETED {
+					} else if literal.ttype == cDELETED {
 						notFound := true
 						for _, ch := range matchedChanges {
 							if ch.Type == "delete" {
@@ -636,29 +636,29 @@ func validate(statement string) error {
 	tokenCount := 0
 
 	token := lexer.nextToken()
-	for isBalanced && token.ttype != EOF {
+	for isBalanced && token.ttype != cEOF {
 		tokenCount++
 		switch token.ttype {
-		case ILLEGAL:
+		case cILLEGAL:
 			return errors.Errorf("validation error: illegal token %s", token.tliteral)
-		case AND:
+		case cAND:
 			fallthrough
-		case OR:
+		case cOR:
 			fallthrough
-		case EVAL:
+		case cEVAL:
 			fallthrough
-		case LPAREN:
+		case cLPAREN:
 			ts.push(token)
-		case RPAREN:
+		case cRPAREN:
 			if ts.isEmpty() {
 				isBalanced = false
 			} else {
 				expectedOpenDelimeter := ts.pop()
-				if expectedOpenDelimeter.ttype != LPAREN {
+				if expectedOpenDelimeter.ttype != cLPAREN {
 					isBalanced = false
 				}
 				expectedOpDelimeter := ts.pop()
-				if expectedOpDelimeter.ttype != AND && expectedOpDelimeter.ttype != OR && expectedOpDelimeter.ttype != EVAL {
+				if expectedOpDelimeter.ttype != cAND && expectedOpDelimeter.ttype != cOR && expectedOpDelimeter.ttype != cEVAL {
 					isOpComplete = false
 				}
 			}
@@ -692,26 +692,26 @@ func evaluate(statement string, d *Diff) (bool, error) {
 	lexer := newLexer(statement)
 
 	tok := lexer.nextToken()
-	for tok.ttype != EOF {
+	for tok.ttype != cEOF {
 
-		if tok.ttype != RPAREN { // continue populating stack until hit right paren
+		if tok.ttype != cRPAREN { // continue populating stack until hit right paren
 			ts.push(tok)
 		} else { // if right paren encountered then begin execution of the component until the most recent (previous) left paren.
 			// populate EVAL transfor stack
 			curexpts := &tokenStack{}
 			for !ts.isEmpty() {
 				ct := ts.pop()
-				if ct.ttype != COMMA && ct.ttype != LPAREN && ct.ttype != RPAREN && ct.ttype != LBRACKET && ct.ttype != RBRACKET {
+				if ct.ttype != cCOMMA && ct.ttype != cLPAREN && ct.ttype != cRPAREN && ct.ttype != cLBRACKET && ct.ttype != cRBRACKET {
 					curexpts.push(ct)
 				}
-				if ct.ttype == LPAREN {
+				if ct.ttype == cLPAREN {
 					break
 				}
 			}
 
 			op := ts.pop()
 
-			if op.ttype == EVAL {
+			if op.ttype == cEVAL {
 				// if operator is EVAL then validate and execute pushing result
 				// onto the stack
 				err := validateTransformStack(curexpts)
@@ -720,9 +720,9 @@ func evaluate(statement string, d *Diff) (bool, error) {
 				}
 				expres := evaluateTransformStack(curexpts, d)
 				if expres == true {
-					ts.push(&token{ttype: TRUE, tliteral: TRUE})
+					ts.push(&token{ttype: cTRUE, tliteral: cTRUE})
 				} else {
-					ts.push(&token{ttype: FALSE, tliteral: FALSE})
+					ts.push(&token{ttype: cFALSE, tliteral: cFALSE})
 				}
 			} else {
 				// if operator is not EVAL (AND or OR) then evaluate the boolean
@@ -731,23 +731,23 @@ func evaluate(statement string, d *Diff) (bool, error) {
 				seenFalse := false
 				for !curexpts.isEmpty() {
 					t := curexpts.pop()
-					if t.ttype == FALSE {
+					if t.ttype == cFALSE {
 						seenFalse = true
 					} else {
 						seenTrue = true
 					}
 				}
-				if op.ttype == OR {
+				if op.ttype == cOR {
 					if seenTrue {
-						ts.push(&token{ttype: TRUE, tliteral: TRUE})
+						ts.push(&token{ttype: cTRUE, tliteral: cTRUE})
 					} else {
-						ts.push(&token{ttype: FALSE, tliteral: FALSE})
+						ts.push(&token{ttype: cFALSE, tliteral: cFALSE})
 					}
-				} else if op.ttype == AND {
+				} else if op.ttype == cAND {
 					if !seenFalse {
-						ts.push(&token{ttype: TRUE, tliteral: TRUE})
+						ts.push(&token{ttype: cTRUE, tliteral: cTRUE})
 					} else {
-						ts.push(&token{ttype: FALSE, tliteral: FALSE})
+						ts.push(&token{ttype: cFALSE, tliteral: cFALSE})
 					}
 				}
 			}
@@ -758,9 +758,9 @@ func evaluate(statement string, d *Diff) (bool, error) {
 
 	// last result represents the result of the statement
 	result := ts.pop().tliteral
-	if result == TRUE {
+	if result == cTRUE {
 		return true, nil
-	} else if result == FALSE {
+	} else if result == cFALSE {
 		return false, nil
 	} else {
 		return false, nil

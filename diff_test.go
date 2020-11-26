@@ -59,12 +59,12 @@ func ExampleDifferential() {
 			NSS: []string{"NSS1", "NSS2"},
 		},
 		NTS: []*NestedType{
-			&NestedType{
+			{
 				NS:  "AStringNS",
 				NI:  123,
 				NSS: []string{"ANSS1", "ANSS2"},
 			},
-			&NestedType{
+			{
 				NS:  "BStringNS",
 				NI:  123,
 				NSS: []string{"BNSS1", "BNSS2"},
@@ -94,12 +94,12 @@ func ExampleDifferential() {
 		},
 		NTP: nil,
 		NTS: []*NestedType{
-			&NestedType{
+			{
 				NS:  "AStringNS",
 				NI:  123,
 				NSS: []string{"ANSS1u", "ans", "ANSS2"},
 			},
-			&NestedType{
+			{
 				NS:  "BStringNS",
 				NI:  123,
 				NSS: []string{"BNSS1", "BNSS2"},

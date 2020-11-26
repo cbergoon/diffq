@@ -6,50 +6,50 @@ import "fmt"
 type tokenType string
 
 const (
-	// ILLEGAL represents an unsupported token
-	ILLEGAL = "ILLEGAL"
-	//EOF represents end of file
-	EOF = "EOF"
+	// cILLEGAL represents an unsupported token
+	cILLEGAL = "ILLEGAL"
+	//cEOF represents end of file
+	cEOF = "EOF"
 
-	COMMENT = "COMMENT"
+	cCOMMENT = "COMMENT"
 
 	// Identifiers and Literals
 
-	IDENT    = "IDENT"    // field, field.val, array.0.val
-	INT      = "INT"      // 1343456, -123456
-	STRING   = "STRING"   // "foobar"
-	FLOAT    = "FLOAT"    // 123.456, -123.456
-	DURATION = "DURATION" // d"12h30m"
-	TIME     = "TIME"     // t"2006-01-02T15:04:05+07:00" t"2006-01-02T15:04:05Z" (time.RFC3339)
+	cIDENT    = "IDENT"    // field, field.val, array.0.val
+	cINT      = "INT"      // 1343456, -123456
+	cSTRING   = "STRING"   // "foobar"
+	cFLOAT    = "FLOAT"    // 123.456, -123.456
+	cDURATION = "DURATION" // d"12h30m"
+	cTIME     = "TIME"     // t"2006-01-02T15:04:05+07:00" t"2006-01-02T15:04:05Z" (time.RFC3339)
 
-	ASTERISK = "*"
+	cASTERISK = "*"
 
 	// Delimiters
 
-	COMMA = ","
+	cCOMMA = ","
 
-	LPAREN = "("
-	RPAREN = ")"
+	cLPAREN = "("
+	cRPAREN = ")"
 
-	LBRACKET = "["
-	RBRACKET = "]"
+	cLBRACKET = "["
+	cRBRACKET = "]"
 
 	// Keywords
 
-	TRUE      = "TRUE"
-	FALSE     = "FALSE"
-	AND       = "AND"
-	OR        = "OR"
-	EVAL      = "EVAL"
-	GOESTO    = "=>"
-	NOTGOESTO = "=!>"
-	GOESGT    = "=GT>"
-	GOESLT    = "=LT>"
-	GOESGTE   = "=GTE>"
-	GOESLTE   = "=LTE>"
-	NIL       = "NIL"
-	CREATED   = "$created"
-	DELETED   = "$deleted"
+	cTRUE      = "TRUE"
+	cFALSE     = "FALSE"
+	cAND       = "AND"
+	cOR        = "OR"
+	cEVAL      = "EVAL"
+	cGOESTO    = "=>"
+	cNOTGOESTO = "=!>"
+	cGOESGT    = "=GT>"
+	cGOESLT    = "=LT>"
+	cGOESGTE   = "=GTE>"
+	cGOESLTE   = "=LTE>"
+	cNIL       = "NIL"
+	cCREATED   = "$created"
+	cDELETED   = "$deleted"
 )
 
 // token represents the output of the lexer representing each component of the
@@ -69,35 +69,35 @@ func (t *token) String() string {
 // keywords is a lookup map for the token type based on literal value of the
 // keyword.
 var keywords = map[string]tokenType{
-	"true":  TRUE,
-	"false": FALSE,
-	"TRUE":  TRUE,
-	"FALSE": FALSE,
-	"or":    OR,
-	"and":   AND,
-	"eval":  EVAL,
-	"OR":    OR,
-	"AND":   AND,
-	"EVAL":  EVAL,
+	"true":  cTRUE,
+	"false": cFALSE,
+	"TRUE":  cTRUE,
+	"FALSE": cFALSE,
+	"or":    cOR,
+	"and":   cAND,
+	"eval":  cEVAL,
+	"OR":    cOR,
+	"AND":   cAND,
+	"EVAL":  cEVAL,
 
-	"=>":    GOESTO,
-	"=!>":   NOTGOESTO,
-	"=gt>":  GOESGT,
-	"=lt>":  GOESLT,
-	"=gte>": GOESGTE,
-	"=lte>": GOESLTE,
-	"=GT>":  GOESGT,
-	"=LT>":  GOESLT,
-	"=GTE>": GOESGTE,
-	"=LTE>": GOESLTE,
+	"=>":    cGOESTO,
+	"=!>":   cNOTGOESTO,
+	"=gt>":  cGOESGT,
+	"=lt>":  cGOESLT,
+	"=gte>": cGOESGTE,
+	"=lte>": cGOESLTE,
+	"=GT>":  cGOESGT,
+	"=LT>":  cGOESLT,
+	"=GTE>": cGOESGTE,
+	"=LTE>": cGOESLTE,
 
-	"nil": NIL,
-	"NIL": NIL,
+	"nil": cNIL,
+	"NIL": cNIL,
 
-	"$created": CREATED,
-	"$deleted": DELETED,
-	"$CREATED": CREATED,
-	"$DELETED": DELETED,
+	"$created": cCREATED,
+	"$deleted": cDELETED,
+	"$CREATED": cCREATED,
+	"$DELETED": cDELETED,
 }
 
 // lookupIdent first checks for and returns a matching keyword otherwise returns
@@ -106,5 +106,5 @@ func lookupIdent(ident string) tokenType {
 	if tok, ok := keywords[ident]; ok {
 		return tok
 	}
-	return IDENT
+	return cIDENT
 }

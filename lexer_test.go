@@ -36,7 +36,7 @@ func TestLexerTokenization(t *testing.T) {
 	}
 
 	testTokens := [][]*token{
-		[]*token{
+		{
 			{ttype: "COMMENT", tliteral: " test comment "},
 			{ttype: "AND", tliteral: "AND"},
 			{ttype: "(", tliteral: "("},
@@ -199,7 +199,7 @@ func TestLexerTokenization(t *testing.T) {
 		tokens := []*token{}
 		lex := newLexer(inputSetInput)
 		tok := lex.nextToken()
-		for tok.ttype != EOF {
+		for tok.ttype != cEOF {
 			tokens = append(tokens, tok)
 			tok = lex.nextToken()
 		}

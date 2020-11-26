@@ -39,32 +39,32 @@ func (l *lexer) nextToken() *token {
 		if l.peekChar() == '*' {
 			l.readChar()
 			tok.tliteral = l.readComment()
-			tok.ttype = COMMENT
+			tok.ttype = cCOMMENT
 			l.readChar()
 			return tok
 		}
-		tok = newToken(ILLEGAL, l.ch)
+		tok = newToken(cILLEGAL, l.ch)
 	// asterisk
 	case '*':
-		tok = newToken(ASTERISK, l.ch)
+		tok = newToken(cASTERISK, l.ch)
 	// comma
 	case ',':
-		tok = newToken(COMMA, l.ch)
+		tok = newToken(cCOMMA, l.ch)
 	// left parenthesis
 	case '(':
-		tok = newToken(LPAREN, l.ch)
+		tok = newToken(cLPAREN, l.ch)
 	// right parenthesis
 	case ')':
-		tok = newToken(RPAREN, l.ch)
+		tok = newToken(cRPAREN, l.ch)
 	// left bracket
 	case '[':
-		tok = newToken(LBRACKET, l.ch)
+		tok = newToken(cLBRACKET, l.ch)
 	// right bracket
 	case ']':
-		tok = newToken(RBRACKET, l.ch)
+		tok = newToken(cRBRACKET, l.ch)
 	// string / quote
 	case '"':
-		tok.ttype = STRING
+		tok.ttype = cSTRING
 		tok.tliteral = l.readString()
 	// special keywords; $created, $deleted
 	case '$':
@@ -79,20 +79,20 @@ func (l *lexer) nextToken() *token {
 	// end of file
 	case 0:
 		tok.tliteral = ""
-		tok.ttype = EOF
+		tok.ttype = cEOF
 	// literals; string, time, duration, integer, float, true, false, etc.
 	default:
 		if isLetter(l.ch) {
 			if l.ch == 'd' && l.peekChar() == '"' {
 				l.readChar()
 				tok.tliteral = l.readString()
-				tok.ttype = DURATION
+				tok.ttype = cDURATION
 				l.readChar()
 				return tok
 			} else if l.ch == 't' && l.peekChar() == '"' {
 				l.readChar()
 				tok.tliteral = l.readString()
-				tok.ttype = TIME
+				tok.ttype = cTIME
 				l.readChar()
 				return tok
 			}
@@ -103,7 +103,7 @@ func (l *lexer) nextToken() *token {
 			tok.tliteral, tok.ttype = l.readNumber()
 			return tok
 		} else {
-			tok = newToken(ILLEGAL, l.ch)
+			tok = newToken(cILLEGAL, l.ch)
 		}
 	}
 
@@ -127,16 +127,15 @@ func (l *lexer) readChar() {
 		l.ch = l.input[l.readPosition]
 	}
 	l.position = l.readPosition
-	l.readPosition += 1
+	l.readPosition++
 }
 
 // peekChar looks ahead to the next character in the input.
 func (l *lexer) peekChar() byte {
 	if l.readPosition >= len(l.input) {
 		return 0
-	} else {
-		return l.input[l.readPosition]
 	}
+	return l.input[l.readPosition]
 }
 
 // readOperator advances the input until the end of the operator. The start of
@@ -172,9 +171,9 @@ func (l *lexer) readNumber() (string, tokenType) {
 		l.readChar()
 	}
 	if seenDecimal {
-		return l.input[position:l.position], FLOAT
+		return l.input[position:l.position], cFLOAT
 	}
-	return l.input[position:l.position], INT
+	return l.input[position:l.position], cINT
 }
 
 // readString advances the input until the end of the string. The start and end

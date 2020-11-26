@@ -4,18 +4,18 @@ import "testing"
 
 func TestLookupIdent(t *testing.T) {
 	tt := lookupIdent("$created")
-	if tt != CREATED {
-		t.Errorf("incorrect identifier found from lookup, got: %s, want: %s", tt, CREATED)
+	if tt != cCREATED {
+		t.Errorf("incorrect identifier found from lookup, got: %s, want: %s", tt, cCREATED)
 	}
 	tt = lookupIdent("test.identifier")
-	if tt != IDENT {
-		t.Errorf("incorrect identifier found from lookup, got: %s, want: %s", tt, IDENT)
+	if tt != cIDENT {
+		t.Errorf("incorrect identifier found from lookup, got: %s, want: %s", tt, cIDENT)
 	}
 }
 
 func TestTokenString(t *testing.T) {
 	tok := token{
-		ttype:    AND,
+		ttype:    cAND,
 		tliteral: "AND",
 	}
 	tokstr := tok.String()
