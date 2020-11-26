@@ -3,6 +3,7 @@ package diffq
 import (
 	"fmt"
 	"log"
+	"testing"
 	"time"
 )
 
@@ -157,4 +158,16 @@ func ExampleDifferential() {
 	// true
 	// true
 
+}
+
+func TestDifferential(t *testing.T) {
+	// t.Error("TODO (cbergoon): Implement Test")
+}
+
+func TestHumanDifferential(t *testing.T) {
+	// t.Error("TODO (cbergoon): Implement Test")
+}
+
+func TestEvaluateStatement(t *testing.T) {
+	// t.Error("TODO (cbergoon): Implement Test")
 }

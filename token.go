@@ -63,7 +63,7 @@ type token struct {
 
 // String returns a human readable string format of token.
 func (t *token) String() string {
-	return fmt.Sprintf("Type: %s, Literal: %s", t.ttype, t.tliteral)
+	return fmt.Sprintf(`{Type: "%s", Literal: "%s"}`, t.ttype, t.tliteral)
 }
 
 // keywords is a lookup map for the token type based on literal value of the
